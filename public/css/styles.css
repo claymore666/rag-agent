@@ -104,7 +104,6 @@
 .deleting {
   animation: fadeOut 0.3s ease-out forwards;
 }
-/* Add these styles to public/css/styles.css for the loading indicator */
 
 /* Loading indicator dots */
 .dot-flashing {
@@ -154,4 +153,41 @@
   50%, 100% {
     background-color: rgba(79, 70, 229, 0.2);
   }
+}
+
+/* Fix for chat window visibility */
+[data-id].h-full {
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: white !important;
+}
+
+/* Fix for messages container */
+.messages-container {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding: 1rem !important;
+  background-color: white !important;
+}
+
+/* Fix for message form */
+.message-form {
+  display: flex !important;
+  align-items: flex-end !important;
+  background-color: white !important;
+  border-top: 1px solid #e5e7eb !important;
+  padding: 1rem !important;
+}
+
+/* Fix for message input */
+.message-input {
+  display: block !important;
+  width: 100% !important;
+  min-height: 40px !important;
+  padding: 0.75rem !important;
+  resize: none !important;
+  outline: none !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.5rem !important;
+  background-color: white !important;
 }

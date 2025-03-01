@@ -1,16 +1,10 @@
+// Fixed chat.js - Replace your existing chat.js with this file
 document.addEventListener('DOMContentLoaded', function() {
   // DOM elements
   const newChatBtn = document.getElementById('new-chat-btn');
   const conversationList = document.getElementById('conversation-list');
   const tabsContainer = document.getElementById('tabs-container');
   const chatWindows = document.getElementById('chat-windows');
-  
-  // Templates
-  const chatWindowTemplate = document.getElementById('chat-window-template');
-  const userMessageTemplate = document.getElementById('user-message-template');
-  const botMessageTemplate = document.getElementById('bot-message-template');
-  const tabTemplate = document.getElementById('tab-template');
-  const conversationItemTemplate = document.getElementById('conversation-item-template');
   
   // State
   const conversations = {};
@@ -49,14 +43,32 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function addConversationToList(conversation) {
-    const clone = conversationItemTemplate.content.cloneNode(true);
-    const container = clone.querySelector('.conversation-item');
-    
+    // Create conversation item directly without using template
+    const container = document.createElement('div');
+    container.className = 'conversation-item px-4 py-2 hover:bg-gray-100 cursor-pointer';
     container.dataset.id = conversation.id;
-    container.querySelector('.conversation-title').textContent = conversation.title;
     
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'flex justify-between items-center';
+    
+    const title = document.createElement('div');
+    title.className = 'conversation-title text-gray-800 truncate font-medium';
+    title.textContent = conversation.title;
+    
+    const deleteBtn = document.createElement('span');
+    deleteBtn.className = 'delete-conversation-btn text-gray-400 hover:text-red-500 px-1 cursor-pointer';
+    deleteBtn.title = 'Delete conversation';
+    deleteBtn.textContent = '×';
+    
+    const dateDiv = document.createElement('div');
+    dateDiv.className = 'text-xs text-gray-500 conversation-date';
     const date = new Date(conversation.created_at);
-    container.querySelector('.conversation-date').textContent = date.toLocaleDateString();
+    dateDiv.textContent = date.toLocaleDateString();
+    
+    contentDiv.appendChild(title);
+    contentDiv.appendChild(deleteBtn);
+    container.appendChild(contentDiv);
+    container.appendChild(dateDiv);
     
     // Add click event for opening the conversation
     container.addEventListener('click', (e) => {
@@ -67,13 +79,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Add event listener for delete button
-    const deleteBtn = container.querySelector('.delete-conversation-btn');
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent opening the conversation
-        deleteConversation(conversation.id);
-      });
-    }
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent opening the conversation
+      deleteConversation(conversation.id);
+    });
     
     conversationList.prepend(container);
   }
@@ -106,171 +115,214 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-function openConversation(conversationId) {
-  console.log('Opening conversation:', conversationId);
-  // If conversation is already open, just activate that tab
-  if (openTabs.has(conversationId)) {
-    activateTab(conversationId);
-    return;
-  }
-  
-  const conversation = conversations[conversationId];
-  if (!conversation) {
-    console.error('Conversation not found:', conversationId);
-    return;
-  }
-  
-  // Clear the welcome screen if it exists
-  if (chatWindows.querySelector('.text-center')) {
-    chatWindows.innerHTML = '';
-  }
-  
-  // Create new tab
-  const tabClone = tabTemplate.content.cloneNode(true);
-  const tab = tabClone.querySelector('.chat-tab');
-  
-  tab.dataset.id = conversationId;
-  tab.querySelector('.tab-title').textContent = conversation.title.length > 15 
-    ? conversation.title.substring(0, 15) + '...' 
-    : conversation.title;
-  
-  tab.querySelector('.close-tab').addEventListener('click', (e) => {
-    e.stopPropagation();
-    closeTab(conversationId);
-  });
-  
-  tab.addEventListener('click', () => {
-    activateTab(conversationId);
-  });
-  
-  tabsContainer.appendChild(tab);
-  
-  // Create chat window
-  const windowClone = chatWindowTemplate.content.cloneNode(true);
-  const chatWindow = windowClone.querySelector('.chat-window');
-  
-  chatWindow.dataset.id = conversationId;
-  
-  // Make sure chat window is visible
-  chatWindow.style.display = 'flex';
-  
-  // Add submit handler to the form
-  const messageForm = chatWindow.querySelector('.message-form');
-  if (messageForm) {
+  function openConversation(conversationId) {
+    console.log('Opening conversation:', conversationId);
+    
+    // If conversation is already open, just activate that tab
+    if (openTabs.has(conversationId)) {
+      activateTab(conversationId);
+      return;
+    }
+    
+    const conversation = conversations[conversationId];
+    if (!conversation) {
+      console.error('Conversation not found:', conversationId);
+      return;
+    }
+    
+    // Clear the welcome screen if it exists
+    if (chatWindows.querySelector('.text-center')) {
+      chatWindows.innerHTML = '';
+    }
+    
+    // Create tab directly
+    const tab = document.createElement('button');
+    tab.className = 'chat-tab px-4 py-2 text-sm rounded-md hover:bg-gray-100 flex items-center space-x-2';
+    tab.dataset.id = conversationId;
+    
+    const tabTitle = document.createElement('span');
+    tabTitle.className = 'tab-title';
+    tabTitle.textContent = conversation.title.length > 15 
+      ? conversation.title.substring(0, 15) + '...' 
+      : conversation.title;
+    
+    const closeBtn = document.createElement('span');
+    closeBtn.className = 'close-tab ml-2 text-gray-400 hover:text-gray-600';
+    closeBtn.textContent = '×';
+    
+    tab.appendChild(tabTitle);
+    tab.appendChild(closeBtn);
+    
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeTab(conversationId);
+    });
+    
+    tab.addEventListener('click', () => {
+      activateTab(conversationId);
+    });
+    
+    // Clear tabs placeholder if it exists
+    const tabsPlaceholder = tabsContainer.querySelector('.text-gray-500');
+    if (tabsPlaceholder) {
+      tabsPlaceholder.remove();
+    }
+    
+    tabsContainer.appendChild(tab);
+    
+    // Create chat window directly (no templates)
+    const chatWindow = document.createElement('div');
+    chatWindow.className = 'h-full bg-white';
+    chatWindow.style.display = 'flex';
+    chatWindow.style.flexDirection = 'column';
+    chatWindow.dataset.id = conversationId;
+    
+    // Create messages container
+    const messagesContainer = document.createElement('div');
+    messagesContainer.className = 'flex-1 overflow-y-auto p-4 space-y-4 messages-container';
+    messagesContainer.style.backgroundColor = 'white';
+    
+    // Add welcome message
+    const welcomeMessage = document.createElement('div');
+    welcomeMessage.className = 'flex justify-start';
+    welcomeMessage.innerHTML = `
+      <div class="bg-white shadow-sm border border-gray-200 rounded-lg py-2 px-4 max-w-md">
+        <div class="message-content prose">
+          Hi there! How can I assist you today?
+        </div>
+      </div>
+    `;
+    messagesContainer.appendChild(welcomeMessage);
+    
+    // Create message form area
+    const formArea = document.createElement('div');
+    formArea.className = 'border-t border-gray-200 p-4 bg-white';
+    
+    const messageForm = document.createElement('form');
+    messageForm.className = 'message-form flex items-end';
+    
+    const inputContainer = document.createElement('div');
+    inputContainer.className = 'flex-1 bg-white rounded-lg shadow-sm overflow-hidden border border-gray-300';
+    
+    const textarea = document.createElement('textarea');
+    textarea.className = 'message-input w-full p-3 focus:outline-none resize-none';
+    textarea.rows = 1;
+    textarea.placeholder = 'Type your message...';
+    
+    const sendButton = document.createElement('button');
+    sendButton.type = 'submit';
+    sendButton.className = 'ml-2 bg-indigo-600 text-white rounded-lg p-3 hover:bg-indigo-700';
+    sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+    
+    // Assemble the form
+    inputContainer.appendChild(textarea);
+    messageForm.appendChild(inputContainer);
+    messageForm.appendChild(sendButton);
+    formArea.appendChild(messageForm);
+    
+    // Assemble the chat window
+    chatWindow.appendChild(messagesContainer);
+    chatWindow.appendChild(formArea);
+    
+    // Add to chat windows container
+    chatWindows.appendChild(chatWindow);
+    
+    // Set up form submit handler
     messageForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const input = chatWindow.querySelector('.message-input');
-      const message = input.value.trim();
+      const message = textarea.value.trim();
       
       if (message) {
         sendMessage(conversationId, message);
-        input.value = '';
-        // Reset textarea height
-        input.style.height = 'auto';
+        textarea.value = '';
+        textarea.style.height = 'auto';
       }
     });
     
     // Auto-resize textarea
-    const textarea = chatWindow.querySelector('.message-input');
-    if (textarea) {
-      textarea.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
-      });
-      
-      // Focus the textarea
-      setTimeout(() => textarea.focus(), 100);
-    } else {
-      console.error('Textarea element not found in the chat window');
-    }
-  } else {
-    console.error('Message form not found in the chat window');
+    textarea.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+    });
+    
+    // Mark as open
+    openTabs.add(conversationId);
+    
+    // Load messages - for existing conversations
+    fetchMessages(conversationId);
+    
+    // Activate this tab
+    activateTab(conversationId);
+    
+    // Mark conversation as active in sidebar
+    const conversationItems = conversationList.querySelectorAll('.conversation-item');
+    conversationItems.forEach(item => {
+      if (item.dataset.id === conversationId) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+    
+    // Focus the textarea
+    setTimeout(() => {
+      textarea.focus();
+    }, 100);
   }
   
-  chatWindows.appendChild(chatWindow);
-  
-  // Mark as open
-  openTabs.add(conversationId);
-  
-  // Load messages - for existing conversations
-  fetchMessages(conversationId);
-  
-  // Activate this tab
-  activateTab(conversationId);
-  
-  // Mark conversation as active in sidebar
-  const conversationItems = conversationList.querySelectorAll('.conversation-item');
-  conversationItems.forEach(item => {
-    if (item.dataset.id === conversationId) {
-      item.classList.add('active');
-    } else {
-      item.classList.remove('active');
+  function activateTab(conversationId) {
+    console.log('Activating tab for conversation:', conversationId);
+    
+    // Update active tab state
+    activeConversationId = conversationId;
+    
+    // Update tab styling
+    const tabs = tabsContainer.querySelectorAll('.chat-tab');
+    tabs.forEach(tab => {
+      if (tab.dataset.id === conversationId) {
+        tab.classList.add('active');
+      } else {
+        tab.classList.remove('active');
+      }
+    });
+    
+    // Show active chat window, hide others
+    const windows = chatWindows.querySelectorAll('div[data-id]');
+    windows.forEach(window => {
+      if (window.dataset.id === conversationId) {
+        window.style.display = 'flex';
+      } else {
+        window.style.display = 'none';
+      }
+    });
+    
+    // Focus input in active window
+    const activeWindow = chatWindows.querySelector(`div[data-id="${conversationId}"]`);
+    if (activeWindow) {
+      const input = activeWindow.querySelector('.message-input');
+      if (input) {
+        setTimeout(() => input.focus(), 0);
+      }
     }
-  });
-}
-function activateTab(conversationId) {
-  console.log('Activating tab for conversation:', conversationId);
-  
-  // Update active tab state
-  activeConversationId = conversationId;
-  
-  // Update tab styling
-  const tabs = tabsContainer.querySelectorAll('.chat-tab');
-  tabs.forEach(tab => {
-    if (tab.dataset.id === conversationId) {
-      tab.classList.add('active');
-    } else {
-      tab.classList.remove('active');
-    }
-  });
-  
-  // Clear the welcome screen if it exists
-  const welcomeScreen = chatWindows.querySelector('.text-center')?.closest('.h-full');
-  if (welcomeScreen) {
-    welcomeScreen.remove();
+    
+    // Mark conversation as active in sidebar
+    const conversationItems = conversationList.querySelectorAll('.conversation-item');
+    conversationItems.forEach(item => {
+      if (item.dataset.id === conversationId) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
   }
   
-  // Show active chat window, hide others
-  const windows = chatWindows.querySelectorAll('.chat-window');
-  windows.forEach(window => {
-    if (window.dataset.id === conversationId) {
-      window.style.display = 'flex';
-      console.log('Showing chat window for conversation:', conversationId);
-    } else {
-      window.style.display = 'none';
-    }
-  });
-  
-  // Focus input in active window
-  const activeWindow = chatWindows.querySelector(`.chat-window[data-id="${conversationId}"]`);
-  if (activeWindow) {
-    const input = activeWindow.querySelector('.message-input');
-    if (input) {
-      setTimeout(() => input.focus(), 0);
-    } else {
-      console.error('Input element not found in active chat window');
-    }
-  } else {
-    console.error('Active chat window not found:', conversationId);
-  }
-  
-  // Mark conversation as active in sidebar
-  const conversationItems = conversationList.querySelectorAll('.conversation-item');
-  conversationItems.forEach(item => {
-    if (item.dataset.id === conversationId) {
-      item.classList.add('active');
-    } else {
-      item.classList.remove('active');
-    }
-  });
-}
   function closeTab(conversationId) {
     // Remove tab
     const tab = tabsContainer.querySelector(`.chat-tab[data-id="${conversationId}"]`);
     if (tab) tab.remove();
     
     // Remove chat window
-    const chatWindow = chatWindows.querySelector(`.chat-window[data-id="${conversationId}"]`);
+    const chatWindow = chatWindows.querySelector(`div[data-id="${conversationId}"]`);
     if (chatWindow) chatWindow.remove();
     
     // Update state
@@ -292,6 +344,15 @@ function activateTab(conversationId) {
             </div>
           </div>
         `;
+        
+        // Add placeholder to tabs container if empty
+        if (tabsContainer.children.length === 0) {
+          tabsContainer.innerHTML = `
+            <div class="px-4 py-2 text-gray-500 text-center flex-1">
+              <p>Create or select a conversation to start chatting</p>
+            </div>
+          `;
+        }
       }
     }
   }
@@ -304,7 +365,7 @@ function activateTab(conversationId) {
       const messages = await response.json();
       
       // Get messages container for this conversation
-      const chatWindow = chatWindows.querySelector(`.chat-window[data-id="${conversationId}"]`);
+      const chatWindow = chatWindows.querySelector(`div[data-id="${conversationId}"]`);
       if (!chatWindow) {
         console.error('Chat window not found for conversation:', conversationId);
         return;
@@ -316,30 +377,19 @@ function activateTab(conversationId) {
         return;
       }
       
-      // Clear existing messages
-      messagesContainer.innerHTML = '';
-      
-      // If no messages, add a welcome message
-      if (messages.length === 0) {
-        const welcomeHtml = `
-          <div class="flex justify-start">
-            <div class="bg-white shadow-sm border border-gray-200 rounded-lg py-2 px-4 max-w-md">
-              <div class="message-content prose">
-                Hi there! How can I assist you today?
-              </div>
-            </div>
-          </div>
-        `;
-        messagesContainer.innerHTML = welcomeHtml;
-      } else {
+      // Only replace if there are actual messages from the server
+      if (messages.length > 0) {
+        // Clear existing messages
+        messagesContainer.innerHTML = '';
+        
         // Add messages
         messages.forEach(message => {
           addMessageToUI(messagesContainer, message.content, message.is_user);
         });
+        
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
       }
-      
-      // Scroll to bottom
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
@@ -348,7 +398,7 @@ function activateTab(conversationId) {
   async function sendMessage(conversationId, content) {
     try {
       // Get messages container for this conversation
-      const chatWindow = chatWindows.querySelector(`.chat-window[data-id="${conversationId}"]`);
+      const chatWindow = chatWindows.querySelector(`div[data-id="${conversationId}"]`);
       if (!chatWindow) {
         console.error('Chat window not found for conversation:', conversationId);
         return;
@@ -368,19 +418,20 @@ function activateTab(conversationId) {
       
       // Add loading indicator
       const loadingId = 'loading-' + Date.now();
-      const loadingHtml = `
-        <div id="${loadingId}" class="flex justify-start">
-          <div class="bg-white shadow-sm border border-gray-200 rounded-lg py-2 px-4 max-w-md">
-            <div class="message-content prose">
-              <div class="flex items-center">
-                <div class="dot-flashing mr-2"></div>
-                Thinking...
-              </div>
+      const loadingIndicator = document.createElement('div');
+      loadingIndicator.id = loadingId;
+      loadingIndicator.className = 'flex justify-start';
+      loadingIndicator.innerHTML = `
+        <div class="bg-white shadow-sm border border-gray-200 rounded-lg py-2 px-4 max-w-md">
+          <div class="message-content prose">
+            <div class="flex items-center">
+              <div class="dot-flashing mr-2"></div>
+              Thinking...
             </div>
           </div>
         </div>
       `;
-      messagesContainer.insertAdjacentHTML('beforeend', loadingHtml);
+      messagesContainer.appendChild(loadingIndicator);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
       
       // Send message to server
@@ -412,25 +463,34 @@ function activateTab(conversationId) {
   }
   
   function addMessageToUI(container, content, isUser) {
-    const template = isUser ? userMessageTemplate : botMessageTemplate;
-    const clone = template.content.cloneNode(true);
+    // Create message elements directly instead of using templates
+    const messageDiv = document.createElement('div');
+    messageDiv.className = isUser ? 'flex justify-end' : 'flex justify-start';
     
-    const messageContent = clone.querySelector('.message-content');
+    const bubbleDiv = document.createElement('div');
+    bubbleDiv.className = isUser 
+      ? 'bg-indigo-600 text-white rounded-lg py-2 px-4 max-w-md' 
+      : 'bg-white shadow-sm border border-gray-200 rounded-lg py-2 px-4 max-w-md';
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content' + (isUser ? '' : ' prose');
     
     if (isUser) {
-      messageContent.textContent = content;
+      contentDiv.textContent = content;
     } else {
       // Use marked.js to render markdown for bot messages
-      messageContent.innerHTML = marked.parse(content);
+      contentDiv.innerHTML = marked.parse(content);
       
       // Apply syntax highlighting to code blocks
-      const codeBlocks = messageContent.querySelectorAll('pre code');
+      const codeBlocks = contentDiv.querySelectorAll('pre code');
       codeBlocks.forEach(block => {
         hljs.highlightElement(block);
       });
     }
     
-    container.appendChild(clone);
+    bubbleDiv.appendChild(contentDiv);
+    messageDiv.appendChild(bubbleDiv);
+    container.appendChild(messageDiv);
   }
   
   // Delete conversation functionality
