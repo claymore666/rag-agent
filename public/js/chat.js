@@ -58,15 +58,29 @@ document.addEventListener('DOMContentLoaded', function() {
     const date = new Date(conversation.created_at);
     container.querySelector('.conversation-date').textContent = date.toLocaleDateString();
     
-    container.addEventListener('click', () => {
-      openConversation(conversation.id);
+    // Add click event for opening the conversation
+    container.addEventListener('click', (e) => {
+      // Only open if we didn't click the delete button
+      if (!e.target.closest('.delete-conversation-btn')) {
+        openConversation(conversation.id);
+      }
     });
+    
+    // Add event listener for delete button
+    const deleteBtn = container.querySelector('.delete-conversation-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent opening the conversation
+        deleteConversation(conversation.id);
+      });
+    }
     
     conversationList.prepend(container);
   }
   
   async function createNewConversation() {
     try {
+      console.log('Creating new conversation...');
       const response = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -76,7 +90,13 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!response.ok) throw new Error('Failed to create conversation');
       
       const conversation = await response.json();
+      console.log('Conversation created:', conversation);
       conversations[conversation.id] = conversation;
+      
+      // Clear the "no conversations" placeholder if it exists
+      if (conversationList.querySelector('.text-center')) {
+        conversationList.innerHTML = '';
+      }
       
       addConversationToList(conversation);
       openConversation(conversation.id);
@@ -87,6 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function openConversation(conversationId) {
+    console.log('Opening conversation:', conversationId);
     // If conversation is already open, just activate that tab
     if (openTabs.has(conversationId)) {
       activateTab(conversationId);
@@ -94,6 +115,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     const conversation = conversations[conversationId];
+    if (!conversation) {
+      console.error('Conversation not found:', conversationId);
+      return;
+    }
     
     // Create new tab
     const tabClone = tabTemplate.content.cloneNode(true);
@@ -159,7 +184,6 @@ document.addEventListener('DOMContentLoaded', function() {
       if (item.dataset.id === conversationId) {
         item.classList.add('active');
       } else {
-        item.classList
         item.classList.remove('active');
       }
     });
@@ -319,5 +343,49 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     container.appendChild(clone);
+  }
+  
+  // Delete conversation functionality
+  async function deleteConversation(conversationId) {
+    // Show confirmation dialog
+    if (!confirm('Are you sure you want to delete this conversation? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      console.log('Deleting conversation:', conversationId);
+      const response = await fetch(`/api/conversations/${conversationId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) throw new Error('Failed to delete conversation');
+      
+      // Remove from conversations object
+      delete conversations[conversationId];
+      
+      // Remove from the UI
+      const conversationItem = conversationList.querySelector(`.conversation-item[data-id="${conversationId}"]`);
+      if (conversationItem) {
+        conversationItem.remove();
+      }
+      
+      // If this conversation was open, close the tab
+      if (openTabs.has(conversationId)) {
+        closeTab(conversationId);
+      }
+      
+      // Show empty state if no conversations left
+      if (Object.keys(conversations).length === 0) {
+        conversationList.innerHTML = `
+          <div class="px-4 py-2 text-gray-500 text-center mt-8">
+            <i class="fas fa-comments text-3xl mb-2"></i>
+            <p>No conversations yet</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      alert('Failed to delete conversation. Please try again.');
+    }
   }
 });

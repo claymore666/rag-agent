@@ -12,6 +12,32 @@ const config = require('./config');
 const app = express();
 const PORT = process.env.PORT || 2003;
 
+// Function to extract IPv4 address from request
+function getIPv4Address(req) {
+  // Check X-Forwarded-For header first (for proxies)
+  let ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  
+  // Handle comma-separated list in X-Forwarded-For
+  if (ip && ip.includes(',')) {
+    ip = ip.split(',')[0].trim();
+  }
+  
+  // Handle IPv6 format that includes IPv4 (like ::ffff:192.168.1.1)
+  if (ip && ip.includes('::ffff:')) {
+    ip = ip.split('::ffff:')[1];
+  }
+  
+  // Check if it matches IPv4 format
+  const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+  
+  if (ip && ipv4Regex.test(ip)) {
+    return ip;
+  }
+  
+  // Return a default value if no valid IPv4 is found
+  return '0.0.0.0';
+}
+
 // Database connection
 const pool = new Pool({
   connectionString: config.postgresUrl,
@@ -106,8 +132,8 @@ passport.use(new GoogleStrategy({
 ));
 
 app.get('/guest-login', function(req, res) {
-  // Get the client IP
-  const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  // Get the client IPv4
+  const clientIp = getIPv4Address(req);
   
   // Create a simple session for the guest user
   req.session.guestUser = {
@@ -133,10 +159,10 @@ passport.deserializeUser(function(id, done) {
     .catch(err => done(err));
 });
 
-// Fallback for IP-based identification
+// Fallback for IP-based identification - Now IPv4 only
 app.use((req, res, next) => {
   if (!req.isAuthenticated()) {
-    req.clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    req.clientIp = getIPv4Address(req);
   }
   next();
 });
@@ -172,8 +198,8 @@ function isAuthenticated(req, res, next) {
   
   // IP-based authentication if enabled
   if (config.ipBasedAuth) {
-    // Get client IP
-    const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    // Get client IPv4
+    const clientIp = getIPv4Address(req);
     
     // Set a guest user
     req.user = {
@@ -212,8 +238,8 @@ app.get('/chat', function(req, res, next) {
   
   // For guest users (IP-based identification)
   if (config.ipBasedAuth) {
-    // Get the client IP
-    const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    // Get the client IPv4
+    const clientIp = getIPv4Address(req);
     
     // Create a guest user object
     const guestUser = {
@@ -328,6 +354,41 @@ app.post('/api/conversations/:id/messages', isAuthenticated, async (req, res) =>
   } catch (error) {
     console.error('Error processing message:', error);
     res.status(500).json({ error: 'Failed to process message' });
+  }
+});
+
+// Delete conversation endpoint
+app.delete('/api/conversations/:id', isAuthenticated, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user ? req.user.id : req.clientIp;
+    
+    // Verify user owns this conversation
+    const convCheck = await pool.query(
+      'SELECT id FROM conversations WHERE id = $1 AND user_id = $2',
+      [id, userId]
+    );
+    
+    if (convCheck.rows.length === 0) {
+      return res.status(403).json({ error: 'Unauthorized access to conversation' });
+    }
+    
+    // First delete all messages associated with this conversation
+    await pool.query(
+      'DELETE FROM messages WHERE conversation_id = $1',
+      [id]
+    );
+    
+    // Then delete the conversation itself
+    await pool.query(
+      'DELETE FROM conversations WHERE id = $1 AND user_id = $2',
+      [id, userId]
+    );
+    
+    res.json({ success: true, message: 'Conversation deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting conversation:', error);
+    res.status(500).json({ error: 'Failed to delete conversation' });
   }
 });
 
