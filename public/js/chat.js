@@ -106,48 +106,58 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  function openConversation(conversationId) {
-    console.log('Opening conversation:', conversationId);
-    // If conversation is already open, just activate that tab
-    if (openTabs.has(conversationId)) {
-      activateTab(conversationId);
-      return;
-    }
-    
-    const conversation = conversations[conversationId];
-    if (!conversation) {
-      console.error('Conversation not found:', conversationId);
-      return;
-    }
-    
-    // Create new tab
-    const tabClone = tabTemplate.content.cloneNode(true);
-    const tab = tabClone.querySelector('.chat-tab');
-    
-    tab.dataset.id = conversationId;
-    tab.querySelector('.tab-title').textContent = conversation.title.length > 15 
-      ? conversation.title.substring(0, 15) + '...' 
-      : conversation.title;
-    
-    tab.querySelector('.close-tab').addEventListener('click', (e) => {
-      e.stopPropagation();
-      closeTab(conversationId);
-    });
-    
-    tab.addEventListener('click', () => {
-      activateTab(conversationId);
-    });
-    
-    tabsContainer.appendChild(tab);
-    
-    // Create chat window
-    const windowClone = chatWindowTemplate.content.cloneNode(true);
-    const chatWindow = windowClone.querySelector('.chat-window');
-    
-    chatWindow.dataset.id = conversationId;
-    
-    // Add submit handler to the form
-    chatWindow.querySelector('.message-form').addEventListener('submit', (e) => {
+function openConversation(conversationId) {
+  console.log('Opening conversation:', conversationId);
+  // If conversation is already open, just activate that tab
+  if (openTabs.has(conversationId)) {
+    activateTab(conversationId);
+    return;
+  }
+  
+  const conversation = conversations[conversationId];
+  if (!conversation) {
+    console.error('Conversation not found:', conversationId);
+    return;
+  }
+  
+  // Clear the welcome screen if it exists
+  if (chatWindows.querySelector('.text-center')) {
+    chatWindows.innerHTML = '';
+  }
+  
+  // Create new tab
+  const tabClone = tabTemplate.content.cloneNode(true);
+  const tab = tabClone.querySelector('.chat-tab');
+  
+  tab.dataset.id = conversationId;
+  tab.querySelector('.tab-title').textContent = conversation.title.length > 15 
+    ? conversation.title.substring(0, 15) + '...' 
+    : conversation.title;
+  
+  tab.querySelector('.close-tab').addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeTab(conversationId);
+  });
+  
+  tab.addEventListener('click', () => {
+    activateTab(conversationId);
+  });
+  
+  tabsContainer.appendChild(tab);
+  
+  // Create chat window
+  const windowClone = chatWindowTemplate.content.cloneNode(true);
+  const chatWindow = windowClone.querySelector('.chat-window');
+  
+  chatWindow.dataset.id = conversationId;
+  
+  // Make sure chat window is visible
+  chatWindow.style.display = 'flex';
+  
+  // Add submit handler to the form
+  const messageForm = chatWindow.querySelector('.message-form');
+  if (messageForm) {
+    messageForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const input = chatWindow.querySelector('.message-input');
       const message = input.value.trim();
@@ -162,75 +172,98 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Auto-resize textarea
     const textarea = chatWindow.querySelector('.message-input');
-    textarea.addEventListener('input', function() {
-      this.style.height = 'auto';
-      this.style.height = (this.scrollHeight) + 'px';
-    });
-    
-    chatWindows.appendChild(chatWindow);
-    
-    // Mark as open
-    openTabs.add(conversationId);
-    
-    // Load messages
-    fetchMessages(conversationId);
-    
-    // Activate this tab
-    activateTab(conversationId);
-    
-    // Mark conversation as active in sidebar
-    const conversationItems = conversationList.querySelectorAll('.conversation-item');
-    conversationItems.forEach(item => {
-      if (item.dataset.id === conversationId) {
-        item.classList.add('active');
-      } else {
-        item.classList.remove('active');
-      }
-    });
-  }
-  
-  function activateTab(conversationId) {
-    // Update active tab state
-    activeConversationId = conversationId;
-    
-    // Update tab styling
-    const tabs = tabsContainer.querySelectorAll('.chat-tab');
-    tabs.forEach(tab => {
-      if (tab.dataset.id === conversationId) {
-        tab.classList.add('active');
-      } else {
-        tab.classList.remove('active');
-      }
-    });
-    
-    // Show active chat window, hide others
-    const windows = chatWindows.querySelectorAll('.chat-window');
-    windows.forEach(window => {
-      if (window.dataset.id === conversationId) {
-        window.style.display = 'flex';
-      } else {
-        window.style.display = 'none';
-      }
-    });
-    
-    // Focus input in active window
-    const activeWindow = chatWindows.querySelector(`.chat-window[data-id="${conversationId}"]`);
-    if (activeWindow) {
-      const input = activeWindow.querySelector('.message-input');
-      setTimeout(() => input.focus(), 0);
+    if (textarea) {
+      textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+      });
+      
+      // Focus the textarea
+      setTimeout(() => textarea.focus(), 100);
+    } else {
+      console.error('Textarea element not found in the chat window');
     }
-    
-    // Mark conversation as active in sidebar
-    const conversationItems = conversationList.querySelectorAll('.conversation-item');
-    conversationItems.forEach(item => {
-      if (item.dataset.id === conversationId) {
-        item.classList.add('active');
-      } else {
-        item.classList.remove('active');
-      }
-    });
+  } else {
+    console.error('Message form not found in the chat window');
   }
   
+  chatWindows.appendChild(chatWindow);
+  
+  // Mark as open
+  openTabs.add(conversationId);
+  
+  // Load messages - for existing conversations
+  fetchMessages(conversationId);
+  
+  // Activate this tab
+  activateTab(conversationId);
+  
+  // Mark conversation as active in sidebar
+  const conversationItems = conversationList.querySelectorAll('.conversation-item');
+  conversationItems.forEach(item => {
+    if (item.dataset.id === conversationId) {
+      item.classList.add('active');
+    } else {
+      item.classList.remove('active');
+    }
+  });
+}
+function activateTab(conversationId) {
+  console.log('Activating tab for conversation:', conversationId);
+  
+  // Update active tab state
+  activeConversationId = conversationId;
+  
+  // Update tab styling
+  const tabs = tabsContainer.querySelectorAll('.chat-tab');
+  tabs.forEach(tab => {
+    if (tab.dataset.id === conversationId) {
+      tab.classList.add('active');
+    } else {
+      tab.classList.remove('active');
+    }
+  });
+  
+  // Clear the welcome screen if it exists
+  const welcomeScreen = chatWindows.querySelector('.text-center')?.closest('.h-full');
+  if (welcomeScreen) {
+    welcomeScreen.remove();
+  }
+  
+  // Show active chat window, hide others
+  const windows = chatWindows.querySelectorAll('.chat-window');
+  windows.forEach(window => {
+    if (window.dataset.id === conversationId) {
+      window.style.display = 'flex';
+      console.log('Showing chat window for conversation:', conversationId);
+    } else {
+      window.style.display = 'none';
+    }
+  });
+  
+  // Focus input in active window
+  const activeWindow = chatWindows.querySelector(`.chat-window[data-id="${conversationId}"]`);
+  if (activeWindow) {
+    const input = activeWindow.querySelector('.message-input');
+    if (input) {
+      setTimeout(() => input.focus(), 0);
+    } else {
+      console.error('Input element not found in active chat window');
+    }
+  } else {
+    console.error('Active chat window not found:', conversationId);
+  }
+  
+  // Mark conversation as active in sidebar
+  const conversationItems = conversationList.querySelectorAll('.conversation-item');
+  conversationItems.forEach(item => {
+    if (item.dataset.id === conversationId) {
+      item.classList.add('active');
+    } else {
+      item.classList.remove('active');
+    }
+  });
+}
   function closeTab(conversationId) {
     // Remove tab
     const tab = tabsContainer.querySelector(`.chat-tab[data-id="${conversationId}"]`);
@@ -272,15 +305,38 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Get messages container for this conversation
       const chatWindow = chatWindows.querySelector(`.chat-window[data-id="${conversationId}"]`);
+      if (!chatWindow) {
+        console.error('Chat window not found for conversation:', conversationId);
+        return;
+      }
+      
       const messagesContainer = chatWindow.querySelector('.messages-container');
+      if (!messagesContainer) {
+        console.error('Messages container not found in chat window');
+        return;
+      }
       
       // Clear existing messages
       messagesContainer.innerHTML = '';
       
-      // Add messages
-      messages.forEach(message => {
-        addMessageToUI(messagesContainer, message.content, message.is_user);
-      });
+      // If no messages, add a welcome message
+      if (messages.length === 0) {
+        const welcomeHtml = `
+          <div class="flex justify-start">
+            <div class="bg-white shadow-sm border border-gray-200 rounded-lg py-2 px-4 max-w-md">
+              <div class="message-content prose">
+                Hi there! How can I assist you today?
+              </div>
+            </div>
+          </div>
+        `;
+        messagesContainer.innerHTML = welcomeHtml;
+      } else {
+        // Add messages
+        messages.forEach(message => {
+          addMessageToUI(messagesContainer, message.content, message.is_user);
+        });
+      }
       
       // Scroll to bottom
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -293,12 +349,38 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       // Get messages container for this conversation
       const chatWindow = chatWindows.querySelector(`.chat-window[data-id="${conversationId}"]`);
+      if (!chatWindow) {
+        console.error('Chat window not found for conversation:', conversationId);
+        return;
+      }
+      
       const messagesContainer = chatWindow.querySelector('.messages-container');
+      if (!messagesContainer) {
+        console.error('Messages container not found in chat window');
+        return;
+      }
       
       // Add user message to UI
       addMessageToUI(messagesContainer, content, true);
       
       // Scroll to bottom
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      
+      // Add loading indicator
+      const loadingId = 'loading-' + Date.now();
+      const loadingHtml = `
+        <div id="${loadingId}" class="flex justify-start">
+          <div class="bg-white shadow-sm border border-gray-200 rounded-lg py-2 px-4 max-w-md">
+            <div class="message-content prose">
+              <div class="flex items-center">
+                <div class="dot-flashing mr-2"></div>
+                Thinking...
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      messagesContainer.insertAdjacentHTML('beforeend', loadingHtml);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
       
       // Send message to server
@@ -307,6 +389,12 @@ document.addEventListener('DOMContentLoaded', function() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content }),
       });
+      
+      // Remove loading indicator
+      const loadingElement = document.getElementById(loadingId);
+      if (loadingElement) {
+        loadingElement.remove();
+      }
       
       if (!response.ok) throw new Error('Failed to send message');
       
