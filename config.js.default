@@ -1,0 +1,17 @@
+// config.js
+module.exports = {
+  postgresUrl: process.env.DATABASE_URL || 'postgresql://user:pass@host:5432/user',
+  sessionSecret: process.env.SESSION_SECRET || 'your-session-secret',
+  ipBasedAuth: process.env.IP_BASED_AUTH === 'true' || true,
+  n8nWebhookUrl: process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/rag',
+  github: {
+    clientID: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    callbackURL: process.env.GITHUB_CALLBACK_URL || 'http://localhost:3000/auth/github/callback'
+  },
+  google: {
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/auth/google/callback'
+  }
+};

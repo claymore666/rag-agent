@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat | AI Assistant</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+</head>
+<body class="bg-gray-100 h-screen flex flex-col">
+  <!-- User info and app header -->
+  <header class="bg-white shadow-sm">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center">
+        <h1 class="text-xl font-semibold text-indigo-600">AI Assistant</h1>
+      </div>
+      <div class="flex items-center">
+        <% if (user && user.avatar) { %>
+          <img src="<%= user.avatar %>" alt="Profile" class="w-8 h-8 rounded-full mr-2">
+        <% } else { %>
+          <div class="w-8 h-8 rounded-full bg-indigo-200 flex items-center justify-center mr-2">
+            <i class="fas fa-user text-indigo-600"></i>
+          </div>
+        <% } %>
+        <span class="text-gray-700 mr-4"><%= user.username %></span>
+        <a href="/logout" class="text-gray-600 hover:text-indigo-600">
+          <i class="fas fa-sign-out-alt"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main chat interface -->
+  <main class="flex-1 flex overflow-hidden">
+    <!-- Sidebar with conversation list -->
+    <aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
+      <div class="p-4 border-b border-gray-200">
+        <button id="new-chat-btn" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 w-full flex items-center justify-center">
+          <i class="fas fa-plus mr-2"></i>
+          New Chat
+        </button>
+      </div>
+      <div class="overflow-y-auto flex-1" id="conversation-list">
+        <!-- Conversation list items will be inserted here -->
+        <div class="px-4 py-2 text-gray-500 text-center mt-8">
+          <i class="fas fa-comments text-3xl mb-2"></i>
+          <p>No conversations yet</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Tab container for multiple chat windows -->
+    <div class="flex-1 flex flex-col">
+      <!-- Tabs navigation -->
+      <div class="bg-white border-b border-gray-200 flex space-x-1 p-1" id="tabs-container">
+        <!-- Tabs will be inserted here -->
+        <div class="px-4 py-2 text-gray-500 text-center flex-1">
+          <p>Create or select a conversation to start chatting</p>
+        </div>
+      </div>
+      
+      <!-- Chat windows container -->
+      <div class="flex-1 overflow-hidden" id="chat-windows">
+        <!-- Chat windows will be inserted here -->
+        <div class="h-full flex items-center justify-center text-gray-500">
+          <div class="text-center p-8">
+            <i class="fas fa-robot text-6xl mb-4 text-indigo-200"></i>
+            <h2 class="text-xl font-semibold mb-2">Welcome to AI Assistant</h2>
+            <p>Create a new chat or select an existing conversation to get started</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Chat template (hidden) -->
+  <template id="chat-window-template">
+    <div class="chat-window h-full flex flex-col" style="display: none;">
+      <div class="flex-1 overflow-y-auto p-4 space-y-4 messages-container">
+        <!-- Messages will be inserted here -->
+      </div>
+      <div class="border-t border-gray-200 p-4">
+        <form class="message-form flex items-end">
+          <div class="flex-1 bg-white rounded-lg shadow-sm overflow-hidden border border-gray-300">
+            <textarea rows="1" placeholder="Type your message..." class="message-input w-full p-3 focus:outline-none resize-none"></textarea>
+          </div>
+          <button type="submit" class="ml-2 bg-indigo-600 text-white rounded-lg p-3 hover:bg-indigo-700">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </template>
+
+  <!-- Message templates (hidden) -->
+  <template id="user-message-template">
+    <div class="flex justify-end">
+      <div class="bg-indigo-600 text-white rounded-lg py-2 px-4 max-w-md">
+        <div class="message-content"></div>
+      </div>
+    </div>
+  </template>
+
+  <template id="bot-message-template">
+    <div class="flex justify-start">
+      <div class="bg-white shadow-sm border border-gray-200 rounded-lg py-2 px-4 max-w-md">
+        <div class="message-content prose"></div>
+      </div>
+    </div>
+  </template>
+
+  <template id="tab-template">
+    <button class="chat-tab px-4 py-2 text-sm rounded-md hover:bg-gray-100 flex items-center space-x-2">
+      <span class="tab-title">New Chat</span>
+      <span class="close-tab ml-2 text-gray-400 hover:text-gray-600">×</span>
+    </button>
+  </template>
+
+  <template id="conversation-item-template">
+    <div class="conversation-item px-4 py-2 hover:bg-gray-100 cursor-pointer">
+      <div class="font-medium conversation-title text-gray-800 truncate"></div>
+      <div class="text-xs text-gray-500 conversation-date"></div>
+    </div>
+  </template>
+
+  <script src="/js/chat.js"></script>
+</body>
+</html>
